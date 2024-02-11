@@ -1,0 +1,95 @@
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+@SpringBootApplication
+@RestController
+@RequestMapping("/products")
+public class ProductManagerApplication {
+
+    private final Map<String, Product> products = new HashMap<>();
+
+    public static void main(String[] args) {
+        SpringApplication.run(ProductManagerApplication.class, args);
+    }
+
+    @PostMapping
+    public ResponseEntity<String> createProduct(@RequestBody ProductRequest productRequest) {
+        String productId = UUID.randomUUID().toString();
+        Product product = new Product(productId, productRequest.getName(), productRequest.getDescription(), productRequest.getPrice(), productRequest.getQuantity());
+        products.put(productId, product);
+        return ResponseEntity.ok("Product created successfully with ID: " + productId);
+    }
+
+    @GetMapping("/{productId}")
+    public ResponseEntity<Object> getProduct(@PathVariable String productId) {
+        Product product = products.get(productId);
+        if (product == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found");
+        }
+        return ResponseEntity.ok(product);
+    }
+
+    @PutMapping("/{productId}")
+    public ResponseEntity<String> updateProduct(@PathVariable String productId, @RequestBody ProductRequest productRequest) {
+        Product existingProduct = products.get(productId);
+        if (existingProduct == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found");
+        }
+        existingProduct.setName(productRequest.getName());
+        existingProduct.setDescription(productRequest.getDescription());
+        existingProduct.setPrice(productRequest.getPrice());
+        existingProduct.setQuantity(productRequest.getQuantity());
+        return ResponseEntity.ok("Product updated successfully");
+    }
+
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<String> deleteProduct(@PathVariable String productId) {
+        if (products.remove(productId) == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found");
+        }
+        return ResponseEntity.ok("Product deleted successfully");
+    }
+
+    @PatchMapping("/{productId}/apply-discount")
+    public ResponseEntity<String> applyDiscount(@PathVariable String productId, @RequestBody DiscountRequest discountRequest) {
+        Product product = products.get(productId);
+        if (product == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found");
+        }
+        double discountAmount = product.getPrice() * discountRequest.getDiscountPercentage() / 100;
+        product.setPrice(product.getPrice() - discountAmount);
+        return ResponseEntity.ok("Discount applied successfully. Updated product price: " + product.getPrice());
+    }
+}
+
+class Product {
+    private String productId;
+    private String name;
+    private String description;
+    private double price;
+    private int quantity;
+
+    // Constructor, getters, setters
+}
+
+class ProductRequest {
+    private String name;
+    private String description;
+    private double price;
+    private int quantity;
+
+    // Constructor, getters, setters
+}
+
+class DiscountRequest {
+    private double discountPercentage;
+
+    // Constructor, getters, setters
+}
